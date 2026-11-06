@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Environment variables
+.env
+.env.*
+
+# Local databases
+*.sqlite3
+
+# Uploaded and generated files
+backend/media/
+backend/staticfiles/
+backend/shopping_list.txt
+
+# macOS
+.DS_Store

@@ -140,3 +140,8 @@ dmypy.json
 
 static/
 media/
+
+# Foodgram
+.DS_Store
+backend/shopping_list.txt
+backend/staticfiles/
