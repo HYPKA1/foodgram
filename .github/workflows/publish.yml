@@ -20,8 +20,8 @@ jobs:
       matrix:
         include:
           - name: backend
-            context: ./backend
-            dockerfile: ./backend/Dockerfile
+            context: .
+            dockerfile: ./Dockerfile.backend.production
             image: ghcr.io/hypka1/foodgram-backend
 
           - name: frontend

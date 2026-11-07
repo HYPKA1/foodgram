@@ -147,3 +147,6 @@ backend/shopping_list.txt
 backend/staticfiles/
 
 !infra/.env.example
+
+# Foodgram backups
+infra/backups/
