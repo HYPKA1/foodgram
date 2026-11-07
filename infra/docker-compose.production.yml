@@ -15,8 +15,7 @@ services:
       retries: 10
 
   backend:
-    build:
-      context: ../backend
+    image: ghcr.io/hypka1/foodgram-backend:latest
     restart: unless-stopped
     env_file:
       - .env
@@ -38,9 +37,7 @@ services:
       "
 
   nginx:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile.production
+    image: ghcr.io/hypka1/foodgram-frontend:latest
     restart: unless-stopped
     ports:
       - "80:80"
