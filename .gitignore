@@ -145,3 +145,5 @@ media/
 .DS_Store
 backend/shopping_list.txt
 backend/staticfiles/
+
+!infra/.env.example
