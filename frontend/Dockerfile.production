@@ -1,0 +1,24 @@
+# Этап 1. Сборка React
+FROM node:21.7.1-alpine AS builder
+
+WORKDIR /app
+
+# Устанавливаем зависимости
+COPY package.json package-lock.json ./
+
+RUN npm ci --legacy-peer-deps
+
+# Копируем исходный код React
+COPY . .
+
+# Собираем production-версию
+RUN CI=false npm run build
+
+
+# Этап 2. Nginx
+FROM nginx:1.25.4-alpine
+
+# Копируем готовый React в Nginx
+COPY --from=builder /app/build /usr/share/nginx/html
+
+EXPOSE 80
