@@ -54,9 +54,11 @@ class Ingredient(models.Model):
     def __str__(self):
         return f'{self.name} ({self.measurement_unit})'
 
+
 def generate_short_code():
     """Генерирует короткий код рецепта."""
     return uuid.uuid4().hex[:12]
+
 
 class Recipe(models.Model):
     """Рецепт, опубликованный пользователем."""

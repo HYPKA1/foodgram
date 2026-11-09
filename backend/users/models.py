@@ -40,6 +40,7 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+
 class Subscription(models.Model):
     """Подписка пользователя на автора рецептов."""
 

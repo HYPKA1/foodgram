@@ -124,6 +124,7 @@ class SubscribeView(APIView):
             status=status.HTTP_204_NO_CONTENT,
         )
 
+
 class AvatarView(APIView):
     """Загрузка, замена и удаление аватара."""
 
@@ -156,6 +157,7 @@ class AvatarView(APIView):
             status=status.HTTP_204_NO_CONTENT,
         )
 
+
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """Просмотр ингредиентов и поиск по названию."""
 
@@ -185,6 +187,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (AllowAny,)
     pagination_class = None
 
+
 class IsAuthorOrReadOnly(IsAuthenticatedOrReadOnly):
     """Редактировать и удалять рецепт может только его автор."""
 
@@ -196,6 +199,7 @@ class IsAuthorOrReadOnly(IsAuthenticatedOrReadOnly):
             request.user.is_authenticated
             and obj.author == request.user
         )
+
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Просмотр, создание, редактирование и удаление рецептов."""
@@ -305,6 +309,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             ShoppingCart,
             delete=request.method == 'DELETE',
         )
+
     @action(
         detail=False,
         methods=['get'],
@@ -374,6 +379,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
 
 def recipe_short_redirect(request, short_code):
     """Перенаправление по короткой ссылке на страницу рецепта."""

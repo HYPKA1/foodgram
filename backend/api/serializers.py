@@ -1,9 +1,9 @@
-from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
-from rest_framework import serializers
-
-from users.models import User
-
 from django.db import transaction
+from djoser.serializers import (
+    UserCreateSerializer as DjoserUserCreateSerializer,
+)
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
 
 from recipes.models import (
     Ingredient,
@@ -11,6 +11,7 @@ from recipes.models import (
     RecipeIngredient,
     Tag,
 )
+from users.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -59,8 +60,6 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
             'last_name': {'required': True},
             'email': {'required': True},
         }
-
-from recipes.models import Recipe
 
 
 class RecipeShortSerializer(serializers.ModelSerializer):
@@ -122,8 +121,6 @@ class SubscriptionUserSerializer(UserSerializer):
             context=self.context,
         ).data
 
-from drf_extra_fields.fields import Base64ImageField
-
 
 class AvatarSerializer(serializers.ModelSerializer):
     """Загрузка аватара пользователя в формате Base64."""
@@ -133,8 +130,6 @@ class AvatarSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('avatar',)
-
-from recipes.models import Ingredient, Tag
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -160,6 +155,7 @@ class TagSerializer(serializers.ModelSerializer):
             'slug',
         )
 
+
 class RecipeIngredientReadSerializer(serializers.ModelSerializer):
     """Ингредиент с количеством для отображения рецепта."""
 
@@ -178,6 +174,7 @@ class RecipeIngredientReadSerializer(serializers.ModelSerializer):
             'amount',
         )
 
+
 class RecipeIngredientWriteSerializer(serializers.Serializer):
     """Ингредиент с количеством для создания рецепта."""
 
@@ -186,6 +183,7 @@ class RecipeIngredientWriteSerializer(serializers.Serializer):
     )
 
     amount = serializers.IntegerField(min_value=1)
+
 
 class RecipeReadSerializer(serializers.ModelSerializer):
     """Полная информация о рецепте."""
@@ -238,6 +236,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         return obj.shopping_carts.filter(
             user=request.user
         ).exists()
+
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
     """Создание и редактирование рецептов."""

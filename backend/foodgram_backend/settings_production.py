@@ -2,7 +2,7 @@
 
 import os
 
-from .settings import *
+from .settings import *  # noqa: F401, F403
 
 
 # Секретный ключ берётся из переменных окружения.
