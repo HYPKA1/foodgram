@@ -66,7 +66,7 @@ class UserViewSet(DjoserUserViewSet):
         )
         if not created:
             raise ValidationError(
-                'Подписка уже существует: {}.'.format(author.username)
+                f'Подписка уже существует: {author.username}.'
             )
         return Response(
             SubscriptionUserSerializer(
@@ -149,9 +149,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         if not created:
             raise ValidationError(
-                'Рецепт «{}» уже в «{}».'.format(
-                    recipe.name, model._meta.verbose_name,
-                )
+                f'Рецепт «{recipe.name}» уже в '
+                f'«{model._meta.verbose_name}».'
             )
         return Response(
             RecipeShortSerializer(recipe).data,
@@ -183,14 +182,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         products = (
             RecipeIngredient.objects.filter(
-                recipe__shoppingcart__user=request.user,
+                recipe__shoppingcarts__user=request.user,
             )
             .values('ingredient__name', 'ingredient__measurement_unit')
             .annotate(total_amount=Sum('amount'))
             .order_by('ingredient__name')
         )
         recipes = (
-            Recipe.objects.filter(shoppingcart__user=request.user)
+            Recipe.objects.filter(shoppingcarts__user=request.user)
             .select_related('author')
             .prefetch_related('tags')
             .order_by('name')

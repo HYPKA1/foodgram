@@ -18,8 +18,10 @@ def validate_unique_items(items, get_id, item_name):
         raise serializers.ValidationError(
             f'Добавьте хотя бы один {item_name}.'
         )
-    counts = Counter(map(get_id, items))
-    duplicates = [pk for pk, count in counts.items() if count > 1]
+    duplicates = [
+        pk for pk, count in Counter(map(get_id, items)).items()
+        if count > 1
+    ]
     if duplicates:
         raise serializers.ValidationError(
             f'Повторяющиеся {item_name}: {duplicates}.'
@@ -213,7 +215,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
         recipe = super().create(validated_data)
+        recipe.tags.set(tags)
         self.save_ingredients(recipe, ingredients)
         return recipe
 
@@ -228,9 +232,13 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def update(self, instance, validated_data):
+        tags = validated_data.pop('tags', None)
         instance.recipe_ingredients.all().delete()
         self.save_ingredients(instance, validated_data.pop('ingredients'))
-        return super().update(instance, validated_data)
+        recipe = super().update(instance, validated_data)
+        if tags is not None:
+            recipe.tags.set(tags)
+        return recipe
 
     def to_representation(self, recipe):
         return RecipeReadSerializer(recipe, context=self.context).data

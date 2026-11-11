@@ -9,7 +9,6 @@ from .models import (
     Subscription, Tag, User,
 )
 
-
 FILTER_OPTIONS = (('yes', 'Да'), ('no', 'Нет'))
 
 
@@ -76,7 +75,7 @@ class RecipeAdmin(admin.ModelAdmin):
             .select_related('author')
             .prefetch_related('recipe_ingredients__ingredient', 'tags')
             .annotate(
-                favorite_total=Count('favorite', distinct=True),
+                favorite_total=Count('favorites', distinct=True),
             )
         )
 
@@ -111,7 +110,7 @@ class RecipeAdmin(admin.ModelAdmin):
         return (
             '<img src="{}" width="70" height="70" '
             'style="object-fit:cover" alt="{}">'
-        ).format(escape(recipe.image.url), escape(recipe.name))
+        ).format(recipe.image.url, escape(recipe.name))
 
 
 class RecipeCountMixin:

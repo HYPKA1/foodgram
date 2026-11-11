@@ -17,8 +17,6 @@ Python 3.12, Django 5.2, DRF, Djoser, django-filter, PostgreSQL 16, Gunicorn, Do
 - [Админка](https://51-250-65-215.sslip.io/admin/)
 - [Репозиторий](https://github.com/HYPKA1/foodgram)
 
-Замените `YOUR_DOMAIN` на адрес после настройки HTTPS на сервере.
-
 ## Запуск с Docker Compose
 
 ```bash
@@ -32,6 +30,7 @@ cd foodgram/infra
 docker compose -f docker-compose.production.yml up -d
 docker compose -f docker-compose.production.yml exec backend python manage.py import_ingredients
 docker compose -f docker-compose.production.yml exec backend python manage.py import_tags
+docker compose -f docker-compose.production.yml exec backend python manage.py createsuperuser
 ```
 
 ## Локальный запуск без Docker
@@ -47,6 +46,7 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py import_ingredients
 python manage.py import_tags
+python manage.py createsuperuser
 python manage.py runserver
 ```
 
