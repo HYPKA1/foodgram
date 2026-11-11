@@ -1,0 +1,13 @@
+{
+    auto_https disable_redirects
+}
+
+51-250-65-215.sslip.io {
+    reverse_proxy nginx:80
+
+    tls {
+        issuer acme {
+            disable_http_challenge
+        }
+    }
+}

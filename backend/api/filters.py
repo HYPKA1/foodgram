@@ -45,9 +45,9 @@ class RecipeFilter(django_filters.FilterSet):
         })
 
     def filter_favorited(self, recipes, name, value):
-        return self._filter_collection(recipes, value, 'favorite_entries')
+        return self._filter_collection(recipes, value, 'favorite')
 
     def filter_shopping_cart(self, recipes, name, value):
         return self._filter_collection(
-            recipes, value, 'shoppingcart_entries',
+            recipes, value, 'shoppingcart',
         )

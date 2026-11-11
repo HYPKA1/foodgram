@@ -22,15 +22,16 @@ class ImportJsonCommand(BaseCommand):
             path = options['path'] or self.default_path()
             with path.open(encoding='utf-8') as source:
                 records = json.load(source)
-            if not isinstance(records, list):
-                raise ValueError('Ожидается список объектов JSON')
-            objects = [self.model(**record) for record in records]
             before = self.model.objects.count()
-            self.model.objects.bulk_create(objects, ignore_conflicts=True)
+            self.model.objects.bulk_create(
+                (self.model(**record) for record in records),
+                ignore_conflicts=True,
+            )
             added = self.model.objects.count() - before
-        except (OSError, ValueError, TypeError, KeyError) as error:
+        except Exception as error:
             raise CommandError(
-                f'Ошибка импорта {self.filename}: {error}') from error
+                f'Ошибка импорта {self.filename}: {error}'
+            ) from error
         self.stdout.write(self.style.SUCCESS(
             f'{self.model._meta.verbose_name_plural}: '
             f'загружено {added}, всего {self.model.objects.count()}'

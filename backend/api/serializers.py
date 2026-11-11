@@ -6,33 +6,36 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from recipes.constants import MIN_AMOUNT, MIN_COOKING_TIME
-from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag, User
+from recipes.models import (
+    Favorite, Ingredient, Recipe, RecipeIngredient, ShoppingCart,
+    Tag, User,
+)
 
 
 def validate_unique_items(items, get_id, item_name):
-    """Проверить непустой набор и перечислить повторяющиеся элементы."""
+    """Проверить набор и выявить повторы."""
     if not items:
         raise serializers.ValidationError(
             f'Добавьте хотя бы один {item_name}.'
         )
     counts = Counter(map(get_id, items))
-    duplicates = [str(pk) for pk, count in counts.items() if count > 1]
+    duplicates = [pk for pk, count in counts.items() if count > 1]
     if duplicates:
         raise serializers.ValidationError(
-            f'Повторяющиеся {item_name}: {", ".join(duplicates)}.'
+            f'Повторяющиеся {item_name}: {duplicates}.'
         )
     return items
 
 
 class UserSerializer(DjoserUserSerializer):
-    """Публичные данные пользователя и признак подписки."""
+    """Данные пользователя и подписка."""
 
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta(DjoserUserSerializer.Meta):
         fields = tuple(dict.fromkeys((
             *DjoserUserSerializer.Meta.fields,
-            'first_name', 'last_name', 'avatar', 'is_subscribed',
+            'avatar', 'is_subscribed',
         )))
         read_only_fields = fields
 
@@ -55,7 +58,7 @@ class RecipeShortSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionUserSerializer(UserSerializer):
-    """Пользователь с его рецептами для списка подписок."""
+    """Автор и его рецепты."""
 
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(
@@ -78,7 +81,7 @@ class SubscriptionUserSerializer(UserSerializer):
                 ) from error
             if limit < 0:
                 raise serializers.ValidationError(
-                    {'recipes_limit': 'Число не может быть отрицательным.'}
+                    {'recipes_limit': 'Число меньше нуля.'}
                 )
             recipes = recipes[:limit]
         return RecipeShortSerializer(recipes, many=True).data
@@ -100,7 +103,6 @@ class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
         fields = ('id', 'name', 'measurement_unit')
-        read_only_fields = fields
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -109,7 +111,6 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ('id', 'name', 'slug')
-        read_only_fields = fields
 
 
 class RecipeIngredientReadSerializer(serializers.ModelSerializer):
@@ -128,7 +129,7 @@ class RecipeIngredientReadSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientWriteSerializer(serializers.Serializer):
-    """Данные продукта при сохранении рецепта."""
+    """Продукт для записи рецепта."""
 
     id = serializers.PrimaryKeyRelatedField(
         queryset=Ingredient.objects.all(),
@@ -155,21 +156,21 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def _is_in_collection(self, recipe, relation_name):
+    def _is_in_collection(self, recipe, model):
         request = self.context.get('request')
         return bool(
             request
             and request.user.is_authenticated
-            and getattr(recipe, relation_name).filter(
-                user=request.user,
+            and model.objects.filter(
+                user=request.user, recipe=recipe,
             ).exists()
         )
 
     def get_is_favorited(self, recipe):
-        return self._is_in_collection(recipe, 'favorite_entries')
+        return self._is_in_collection(recipe, Favorite)
 
     def get_is_in_shopping_cart(self, recipe):
-        return self._is_in_collection(recipe, 'shoppingcart_entries')
+        return self._is_in_collection(recipe, ShoppingCart)
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
@@ -212,24 +213,24 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
-        validated_data['author'] = self.context['request'].user
         recipe = super().create(validated_data)
-        recipe.tags.set(tags)
         self.save_ingredients(recipe, ingredients)
         return recipe
 
+    def validate(self, attrs):
+        """Сохранить продукты при частичном обновлении."""
+        if self.instance is not None and 'ingredients' not in attrs:
+            attrs['ingredients'] = [
+                {'id': entry.ingredient, 'amount': entry.amount}
+                for entry in self.instance.recipe_ingredients.all()
+            ]
+        return attrs
+
     @transaction.atomic
     def update(self, instance, validated_data):
-        ingredients = validated_data.pop('ingredients', None)
-        tags = validated_data.pop('tags', None)
-        recipe = super().update(instance, validated_data)
-        if tags is not None:
-            recipe.tags.set(tags)
-        if ingredients is not None:
-            recipe.recipe_ingredients.all().delete()
-            self.save_ingredients(recipe, ingredients)
-        return recipe
+        instance.recipe_ingredients.all().delete()
+        self.save_ingredients(instance, validated_data.pop('ingredients'))
+        return super().update(instance, validated_data)
 
     def to_representation(self, recipe):
         return RecipeReadSerializer(recipe, context=self.context).data

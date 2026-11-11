@@ -1,5 +1,4 @@
-from io import BytesIO
-
+from django.db.models import Sum
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -12,7 +11,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from recipes.models import (
-    Favorite, Ingredient, Recipe, ShoppingCart, Subscription, Tag, User,
+    Favorite, Ingredient, Recipe, RecipeIngredient, ShoppingCart,
+    Subscription, Tag, User,
 )
 
 from .filters import IngredientFilter, RecipeFilter
@@ -38,7 +38,7 @@ class UserViewSet(DjoserUserViewSet):
     def subscriptions(self, request):
         authors = User.objects.filter(
             author_subscriptions__user=request.user,
-        ).order_by('username')
+        )
         paginator = FoodgramPagination()
         page = paginator.paginate_queryset(authors, request, view=self)
         return paginator.get_paginated_response(
@@ -59,14 +59,14 @@ class UserViewSet(DjoserUserViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         author = self.get_object()
-        if author.pk == request.user.pk:
+        if author == request.user:
             raise ValidationError('Нельзя подписаться на себя.')
         _, created = Subscription.objects.get_or_create(
             user=request.user, author=author,
         )
         if not created:
             raise ValidationError(
-                f'Вы уже подписаны на автора {author.username}.'
+                'Подписка уже существует: {}.'.format(author.username)
             )
         return Response(
             SubscriptionUserSerializer(
@@ -96,7 +96,7 @@ class UserViewSet(DjoserUserViewSet):
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    """Продукты с поиском по началу названия."""
+    """Продукты с поиском."""
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
@@ -131,9 +131,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeWriteSerializer
         return RecipeReadSerializer
 
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
     @staticmethod
-    def manage_recipe_relation(request, pk, model, collection_name):
-        """Добавление или удаление рецепта в коллекции."""
+    def manage_recipe_relation(request, pk, model):
+        """Добавить или удалить рецепт."""
         if request.method == 'DELETE':
             get_object_or_404(
                 model, user=request.user, recipe_id=pk,
@@ -146,7 +149,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         if not created:
             raise ValidationError(
-                f'Рецепт «{recipe.name}» уже в списке «{collection_name}».'
+                'Рецепт «{}» уже в «{}».'.format(
+                    recipe.name, model._meta.verbose_name,
+                )
             )
         return Response(
             RecipeShortSerializer(recipe).data,
@@ -159,7 +164,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk=None):
         return self.manage_recipe_relation(
-            request, pk, Favorite, 'Избранное',
+            request, pk, Favorite,
         )
 
     @action(
@@ -168,7 +173,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         return self.manage_recipe_relation(
-            request, pk, ShoppingCart, 'Список покупок',
+            request, pk, ShoppingCart,
         )
 
     @action(
@@ -176,9 +181,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated],
     )
     def download_shopping_cart(self, request):
-        text = build_shopping_list(request.user)
+        products = (
+            RecipeIngredient.objects.filter(
+                recipe__shoppingcart__user=request.user,
+            )
+            .values('ingredient__name', 'ingredient__measurement_unit')
+            .annotate(total_amount=Sum('amount'))
+            .order_by('ingredient__name')
+        )
+        recipes = (
+            Recipe.objects.filter(shoppingcart__user=request.user)
+            .select_related('author')
+            .prefetch_related('tags')
+            .order_by('name')
+        )
         return FileResponse(
-            BytesIO(text.encode('utf-8-sig')),
+            build_shopping_list(products, recipes),
             as_attachment=True,
             filename='shopping_list.txt',
             content_type='text/plain',
@@ -187,7 +205,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, pk=None):
         if not Recipe.objects.filter(pk=pk).exists():
-            raise Http404('Рецепт не найден.')
+            raise Http404(f'Рецепт с ID {pk} не найден.')
         return Response({
             'short-link': request.build_absolute_uri(
                 reverse('recipe-short-redirect', args=[pk]),
