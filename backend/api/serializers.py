@@ -228,17 +228,16 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                 {'id': entry.ingredient, 'amount': entry.amount}
                 for entry in self.instance.recipe_ingredients.all()
             ]
+        if self.instance is not None and 'tags' not in attrs:
+            attrs['tags'] = list(self.instance.tags.all())
         return attrs
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        tags = validated_data.pop('tags', None)
         instance.recipe_ingredients.all().delete()
         self.save_ingredients(instance, validated_data.pop('ingredients'))
-        recipe = super().update(instance, validated_data)
-        if tags is not None:
-            recipe.tags.set(tags)
-        return recipe
+        instance.tags.set(validated_data.pop('tags'))
+        return super().update(instance, validated_data)
 
     def to_representation(self, recipe):
         return RecipeReadSerializer(recipe, context=self.context).data

@@ -7,7 +7,9 @@ from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import (
+    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly,
+)
 from rest_framework.response import Response
 
 from recipes.models import (
@@ -121,7 +123,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.select_related('author').prefetch_related(
         'tags', 'recipe_ingredients__ingredient',
     ).distinct()
-    permission_classes = (IsAuthorOrReadOnly,)
+    permission_classes = (
+        IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly,
+    )
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     http_method_names = ('get', 'post', 'patch', 'delete', 'head', 'options')
