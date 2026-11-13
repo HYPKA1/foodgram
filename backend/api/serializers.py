@@ -221,22 +221,15 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         self.save_ingredients(recipe, ingredients)
         return recipe
 
-    def validate(self, attrs):
-        """Сохранить продукты при частичном обновлении."""
-        if self.instance is not None and 'ingredients' not in attrs:
-            attrs['ingredients'] = [
-                {'id': entry.ingredient, 'amount': entry.amount}
-                for entry in self.instance.recipe_ingredients.all()
-            ]
-        if self.instance is not None and 'tags' not in attrs:
-            attrs['tags'] = list(self.instance.tags.all())
-        return attrs
-
     @transaction.atomic
     def update(self, instance, validated_data):
-        instance.recipe_ingredients.all().delete()
-        self.save_ingredients(instance, validated_data.pop('ingredients'))
-        instance.tags.set(validated_data.pop('tags'))
+        if 'ingredients' in validated_data:
+            instance.recipe_ingredients.all().delete()
+            self.save_ingredients(
+                instance, validated_data.pop('ingredients')
+            )
+        if 'tags' in validated_data:
+            instance.tags.set(validated_data.pop('tags'))
         return super().update(instance, validated_data)
 
     def to_representation(self, recipe):
