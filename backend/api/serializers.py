@@ -221,15 +221,26 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         self.save_ingredients(recipe, ingredients)
         return recipe
 
+    def to_internal_value(self, data):
+        attrs = super().to_internal_value(data)
+        if self.instance is not None:
+            attrs.setdefault(
+                'ingredients',
+                [
+                    {'id': item.ingredient, 'amount': item.amount}
+                    for item in self.instance.recipe_ingredients.all()
+                ],
+            )
+            attrs.setdefault('tags', list(self.instance.tags.all()))
+        return attrs
+
     @transaction.atomic
     def update(self, instance, validated_data):
-        if 'ingredients' in validated_data:
-            instance.recipe_ingredients.all().delete()
-            self.save_ingredients(
-                instance, validated_data.pop('ingredients')
-            )
-        if 'tags' in validated_data:
-            instance.tags.set(validated_data.pop('tags'))
+        instance.recipe_ingredients.all().delete()
+        self.save_ingredients(
+            instance, validated_data.pop('ingredients')
+        )
+        instance.tags.set(validated_data.pop('tags'))
         return super().update(instance, validated_data)
 
     def to_representation(self, recipe):

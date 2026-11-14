@@ -161,7 +161,7 @@ const SingleCard = ({ loadItem, updateOrders }) => {
                     }}
                   />
                   <LinkComponent
-                    title={`${author.first_name} ${author.last_name}`}
+                    title={author.username}
                     href={`/user/${author.id}`}
                     className={styles["single-card__link"]}
                   />

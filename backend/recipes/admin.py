@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 from django.db.models import Count
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -51,6 +52,29 @@ class HasIngredientRecipesFilter(RelationPresenceFilter):
     relation = 'recipes'
 
 
+class CookingTimeFilter(admin.SimpleListFilter):
+    title = 'Время приготовления'
+    parameter_name = 'cooking_duration'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('fast', 'Быстрые (до 20 мин)'),
+            ('medium', 'Средние (20–60 мин)'),
+            ('slow', 'Долгие (от 60 мин)'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'fast':
+            return queryset.filter(cooking_time__lt=20)
+        if self.value() == 'medium':
+            return queryset.filter(
+                cooking_time__gte=20, cooking_time__lt=60
+            )
+        if self.value() == 'slow':
+            return queryset.filter(cooking_time__gte=60)
+        return queryset
+
+
 class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
     extra = 1
@@ -59,15 +83,20 @@ class RecipeIngredientInline(admin.TabularInline):
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'name', 'cooking_time', 'author', 'favorites_count',
+        'id', 'name', 'cooking_minutes', 'author', 'favorites_count',
         'products_display', 'tags_display', 'image_display',
     )
     search_fields = (
         'name', 'author__username', 'author__email',
         'tags__name', 'ingredients__name',
     )
-    list_filter = ('tags', 'author')
+    list_filter = ('tags', 'author', CookingTimeFilter)
     inlines = (RecipeIngredientInline,)
+    readonly_fields = ('image_display',)
+
+    @admin.display(description='Время (мин)', ordering='cooking_time')
+    def cooking_minutes(self, recipe):
+        return recipe.cooking_time
 
     def get_queryset(self, request):
         return (
@@ -164,8 +193,9 @@ class FoodgramUserAdmin(RecipeCountMixin, UserAdmin):
         HasSubscriptionsFilter, HasSubscribersFilter,
     )
     ordering = ('username',)
+    readonly_fields = ('avatar_display',)
     fieldsets = UserAdmin.fieldsets + (
-        ('Дополнительно', {'fields': ('avatar',)}),
+        ('Дополнительно', {'fields': ('avatar', 'avatar_display')}),
     )
 
     def get_queryset(self, request):
@@ -205,3 +235,9 @@ class FoodgramUserAdmin(RecipeCountMixin, UserAdmin):
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'author')
     search_fields = ('user__username', 'author__username')
+
+
+try:
+    admin.site.unregister(Group)
+except admin.sites.NotRegistered:
+    pass

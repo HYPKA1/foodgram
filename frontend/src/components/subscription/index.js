@@ -60,7 +60,7 @@ const Subscription = ({
           <LinkComponent
             className={styles.subscriptionRecipeLink}
             href={`/user/${id}`}
-            title={`${first_name} ${last_name}`}
+            title={username}
           />
         </h2>
       </div>

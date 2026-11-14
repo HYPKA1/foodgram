@@ -73,7 +73,7 @@ const Card = ({
           <div className={styles.card__author}>
             <LinkComponent
               href={`/user/${author.id}`}
-              title={`${author.first_name} ${author.last_name}`}
+              title={author.username}
               className={styles.card__link}
             />
           </div>

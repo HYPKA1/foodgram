@@ -8,7 +8,17 @@ def build_shopping_list(products, recipes):
     """Сформировать текст списка покупок."""
     return '\n'.join([
         'Список покупок Foodgram',
-        f'Дата составления: {timezone.localdate():%d.%m.%Y}',
+        (
+            'Дата составления: {} {} {}'.format(
+                timezone.localdate().day,
+                (
+                    'января', 'февраля', 'марта', 'апреля',
+                    'мая', 'июня', 'июля', 'августа',
+                    'сентября', 'октября', 'ноября', 'декабря',
+                )[timezone.localdate().month - 1],
+                timezone.localdate().year,
+            )
+        ),
         '',
         'Продукты:',
         *(
